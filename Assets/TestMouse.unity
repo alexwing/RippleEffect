@@ -340,9 +340,9 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   refractionStrength: 0.5
-  reflectionColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  reflectionColor: {r: 0.3247597, g: 0.44587123, b: 0.7735849, a: 1}
   reflectionStrength: 0.7
-  waveSpeed: 1.25
+  waveSpeed: 1
   shader: {fileID: 4800000, guid: 162fe242d486f4dab90ed53db15b9c19, type: 3}
 --- !u!1 &2116522087
 GameObject:
