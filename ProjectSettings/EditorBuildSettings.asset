@@ -4,4 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/TestMouse.unity
+    guid: cf21094dedc573f45b0ef3d3163e5327
+  m_configObjects: {}
