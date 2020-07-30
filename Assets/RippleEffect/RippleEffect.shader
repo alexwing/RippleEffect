@@ -10,6 +10,8 @@
         _Drop1("Drop 1", Vector) = (0.49, 0.5, 0, 0)
         _Drop2("Drop 2", Vector) = (0.50, 0.5, 0, 0)
         _Drop3("Drop 3", Vector) = (0.51, 0.5, 0, 0)
+        _Drop4("Drop 4", Vector) = (0.52, 0.5, 0, 0)
+        _Drop5("Drop 5", Vector) = (0.52, 0.5, 0, 0)
     }
 
     CGINCLUDE
@@ -28,6 +30,8 @@
     float3 _Drop1;
     float3 _Drop2;
     float3 _Drop3;
+    float3 _Drop4;
+    float3 _Drop5;
 
     float wave(float2 position, float2 origin, float time)
     {
@@ -41,7 +45,9 @@
         return
             wave(position, _Drop1.xy, _Drop1.z) +
             wave(position, _Drop2.xy, _Drop2.z) +
-            wave(position, _Drop3.xy, _Drop3.z);
+            wave(position, _Drop3.xy, _Drop3.z) +
+            wave(position, _Drop4.xy, _Drop4.z) +
+            wave(position, _Drop5.xy, _Drop5.z);
     }
 
     half4 frag(v2f_img i) : SV_Target

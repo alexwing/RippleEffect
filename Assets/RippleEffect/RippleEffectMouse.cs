@@ -95,6 +95,8 @@ public class RippleEffectMouse : MonoBehaviour
         material.SetVector("_Drop1", droplets[0].MakeShaderParameter(c.aspect));
         material.SetVector("_Drop2", droplets[1].MakeShaderParameter(c.aspect));
         material.SetVector("_Drop3", droplets[2].MakeShaderParameter(c.aspect));
+        material.SetVector("_Drop4", droplets[3].MakeShaderParameter(c.aspect));
+        material.SetVector("_Drop5", droplets[4].MakeShaderParameter(c.aspect));
 
         material.SetColor("_Reflection", reflectionColor);
         material.SetVector("_Params1", new Vector4(c.aspect, 1, 1 / waveSpeed, 0));
@@ -103,10 +105,12 @@ public class RippleEffectMouse : MonoBehaviour
 
     void Awake()
     {
-        droplets = new Droplet[3];
+        droplets = new Droplet[5];
         droplets[0] = new Droplet();
         droplets[1] = new Droplet();
         droplets[2] = new Droplet();
+        droplets[3] = new Droplet();
+        droplets[4] = new Droplet();
 
         gradTexture = new Texture2D(2048, 1, TextureFormat.Alpha8, false);
         gradTexture.wrapMode = TextureWrapMode.Clamp;
@@ -133,14 +137,13 @@ public class RippleEffectMouse : MonoBehaviour
         for (int i = 0; i < Input.touchCount; i++)
         {
             if (i < droplets.Length)
-            droplets[i].Reset(myTouches[i].position);
-            //Emit(myTouches[i].position);
+                Emit(myTouches[i].position);
         }
 #if UNITY_EDITOR
-
         if (Input.GetMouseButton(0))
         {
-            Emit(Input.mousePosition);
+            droplets[0].Reset(Input.mousePosition);
+          //  Emit(Input.mousePosition);
         }
 #endif
         foreach (var d in droplets) d.Update();
