@@ -28,6 +28,8 @@ public class RippleEffectMouse : MonoBehaviour
     [Range(1.0f, 3.0f)]
     public float waveSpeed = 1.25f;
 
+
+
     [SerializeField, HideInInspector]
     Shader shader;
 
@@ -49,7 +51,20 @@ public class RippleEffectMouse : MonoBehaviour
 
             //  position = new Vector2(Random.value, Random.value);
             float screenRatio = Camera.main.aspect - 1f;
-            Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + screenRatio + " | "+ Camera.main.aspect);
+            Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + screenRatio + " | " + Camera.main.aspect);
+            position = new Vector2((worldPosition.x * screenRatio) + 0.5f, worldPosition.y + 0.5f);
+            time = 0;
+        }
+
+        public void Reset(Vector3 mousePos)
+        {
+            // Vector3 mousePos = Input.mousePosition;
+            mousePos.z = Camera.main.nearClipPlane;
+            Vector2 worldPosition = Camera.main.ScreenToWorldPoint(mousePos);
+
+            //  position = new Vector2(Random.value, Random.value);
+            float screenRatio = Camera.main.aspect - 1f;
+            Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + screenRatio + " | " + Camera.main.aspect);
             position = new Vector2((worldPosition.x * screenRatio) + 0.5f, worldPosition.y + 0.5f);
             time = 0;
         }
@@ -113,11 +128,21 @@ public class RippleEffectMouse : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            Emit();
-        }
 
+        Touch[] myTouches = Input.touches;
+        for (int i = 0; i < Input.touchCount; i++)
+        {
+            if (i < droplets.Length)
+            droplets[i].Reset(myTouches[i].position);
+            //Emit(myTouches[i].position);
+        }
+#if UNITY_EDITOR
+
+        if (Input.GetMouseButton(0))
+        {
+            Emit(Input.mousePosition);
+        }
+#endif
         foreach (var d in droplets) d.Update();
         UpdateShaderParameters();
     }
@@ -127,8 +152,8 @@ public class RippleEffectMouse : MonoBehaviour
         Graphics.Blit(source, destination, material);
     }
 
-    public void Emit()
+    public void Emit(Vector3 mousePos)
     {
-        droplets[dropCount++ % droplets.Length].Reset();
+        droplets[dropCount++ % droplets.Length].Reset(mousePos);
     }
 }
