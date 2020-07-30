@@ -48,9 +48,9 @@ public class RippleEffectMouse : MonoBehaviour
             Vector2 worldPosition = Camera.main.ScreenToWorldPoint(mousePos);
 
             //  position = new Vector2(Random.value, Random.value);
-
-            Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + Random.value);
-            position = new Vector2(worldPosition.x + 0.5f, worldPosition.y + 0.5f);
+            float screenRatio = Camera.main.aspect - 1f;
+            Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + screenRatio + " | "+ Camera.main.aspect);
+            position = new Vector2((worldPosition.x * screenRatio) + 0.5f, worldPosition.y + 0.5f);
             time = 0;
         }
 
