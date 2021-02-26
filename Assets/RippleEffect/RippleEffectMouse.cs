@@ -63,9 +63,18 @@ public class RippleEffectMouse : MonoBehaviour
             Vector2 worldPosition = Camera.main.ScreenToWorldPoint(mousePos);
 
             //  position = new Vector2(Random.value, Random.value);
-            float screenRatio = Camera.main.aspect - 1f;
+            float screenRatio = Camera.main.aspect ;
+
             Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + screenRatio + " | " + Camera.main.aspect);
-            position = new Vector2((worldPosition.x * screenRatio) + 0.5f, worldPosition.y + 0.5f);
+
+            if (screenRatio > 1)
+            {
+                position = new Vector2(worldPosition.x + (0.5f * screenRatio) , worldPosition.y + 0.5f );
+            }else
+            {
+                position = new Vector2(worldPosition.x + (0.5f * screenRatio), worldPosition.y +0.5f);
+            }
+            
             time = 0;
         }
 
@@ -77,7 +86,7 @@ public class RippleEffectMouse : MonoBehaviour
 
         public Vector4 MakeShaderParameter(float aspect)
         {
-            return new Vector4(position.x * aspect, position.y, time, 0);
+            return new Vector4(position.x , position.y, time, 0);
         }
 
     }
