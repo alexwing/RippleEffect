@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class RippleEffectMouse : MonoBehaviour
 {
@@ -28,7 +29,17 @@ public class RippleEffectMouse : MonoBehaviour
     [Range(1.0f, 3.0f)]
     public float waveSpeed = 1.25f;
 
+    [Range(1f, 100f)]
+    public float wavesPerSecond = 20f; // Controla cuántas ondas se emiten por segundo
 
+    [Range(0.1f, 5.0f)]
+    public float waveZoom = 1.0f;
+
+    [Range(0.1f, 5.0f)]
+    public float waveWidth = 1.0f;
+
+    [Range(0.0f, 1.0f)]
+    public float waveIntensity = 1.0f;
 
     [SerializeField, HideInInspector]
     Shader shader;
@@ -51,31 +62,26 @@ public class RippleEffectMouse : MonoBehaviour
 
             //  position = new Vector2(Random.value, Random.value);
             float screenRatio = Camera.main.aspect - 1f;
-            Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + screenRatio + " | " + Camera.main.aspect);
+            //Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + screenRatio + " | " + Camera.main.aspect);
             position = new Vector2((worldPosition.x * screenRatio) + 0.5f, worldPosition.y + 0.5f);
             time = 0;
         }
 
         public void Reset(Vector3 mousePos)
         {
-            // Vector3 mousePos = Input.mousePosition;
             mousePos.z = Camera.main.nearClipPlane;
             Vector2 worldPosition = Camera.main.ScreenToWorldPoint(mousePos);
-
-            //  position = new Vector2(Random.value, Random.value);
-            float screenRatio = Camera.main.aspect ;
-
-            Debug.Log(mousePos.x + " - " + mousePos.y + " || " + worldPosition.x + " - " + worldPosition.y + " | " + screenRatio + " | " + Camera.main.aspect);
-
-            if (screenRatio > 1)
-            {
-                position = new Vector2(worldPosition.x + (0.5f * screenRatio) , worldPosition.y + 0.5f );
-            }else
-            {
-                position = new Vector2(worldPosition.x + (0.5f * screenRatio), worldPosition.y +0.5f);
-            }
             
+            // Convertir las coordenadas de pantalla a UV (0-1)
+            position = new Vector2(
+                mousePos.x / Screen.width,
+                mousePos.y / Screen.height
+            );
+
+            // No necesitamos ajustar por el aspect ratio aquí
             time = 0;
+            
+            Debug.Log($"Touch pos: {mousePos}, UV pos: {position}");
         }
 
 
@@ -96,30 +102,34 @@ public class RippleEffectMouse : MonoBehaviour
     Material material;
     float timer;
     int dropCount;
+    private Dictionary<int, int> touchToDropletIndex = new Dictionary<int, int>();
+    private int nextAvailableDropletIndex = 0;
+    private Dictionary<int, float> touchTimers = new Dictionary<int, float>();
+    private static float mouseTimer = 0f;
 
     void UpdateShaderParameters()
     {
         var c = GetComponent<Camera>();
-
-        material.SetVector("_Drop1", droplets[0].MakeShaderParameter(c.aspect));
-        material.SetVector("_Drop2", droplets[1].MakeShaderParameter(c.aspect));
-        material.SetVector("_Drop3", droplets[2].MakeShaderParameter(c.aspect));
-        material.SetVector("_Drop4", droplets[3].MakeShaderParameter(c.aspect));
-        material.SetVector("_Drop5", droplets[4].MakeShaderParameter(c.aspect));
-
+        
+        material.SetVector("_Params1", new Vector4(1, 1, 1 / waveSpeed, waveZoom));
+        material.SetVector("_Params2", new Vector4(c.aspect, 1 / c.aspect, refractionStrength, reflectionStrength));
+        material.SetVector("_WaveParams", new Vector4(waveWidth, waveIntensity, 0, 0));
+        
+        for(int i=0; i<10; i++)
+        {
+            material.SetVector("_Drop" + (i+1), droplets[i].MakeShaderParameter(c.aspect));
+        }
         material.SetColor("_Reflection", reflectionColor);
-        material.SetVector("_Params1", new Vector4(c.aspect, 1, 1 / waveSpeed, 0));
-        material.SetVector("_Params2", new Vector4(1, 1 / c.aspect, refractionStrength, reflectionStrength));
     }
 
     void Awake()
     {
-        droplets = new Droplet[5];
-        droplets[0] = new Droplet();
-        droplets[1] = new Droplet();
-        droplets[2] = new Droplet();
-        droplets[3] = new Droplet();
-        droplets[4] = new Droplet();
+        Input.multiTouchEnabled = true;
+        droplets = new Droplet[10];
+        for(int i = 0; i < 10; i++)
+        {
+            droplets[i] = new Droplet();
+        }
 
         gradTexture = new Texture2D(2048, 1, TextureFormat.Alpha8, false);
         gradTexture.wrapMode = TextureWrapMode.Clamp;
@@ -141,31 +151,80 @@ public class RippleEffectMouse : MonoBehaviour
 
     void Update()
     {
-
-        Touch[] myTouches = Input.touches;
-        for (int i = 0; i < Input.touchCount; i++)
+        float emissionInterval = 1f / wavesPerSecond; // Calcula el intervalo entre emisiones
+        
+        // Manejo de toques móviles
+        foreach (Touch touch in Input.touches)
         {
-            if (i < droplets.Length)
-                Emit(myTouches[i].position);
+            // Inicializar o actualizar el temporizador para este toque
+            if (!touchTimers.ContainsKey(touch.fingerId))
+            {
+                touchTimers[touch.fingerId] = 0f;
+            }
+
+            // Actualizar el temporizador
+            touchTimers[touch.fingerId] -= Time.deltaTime;
+
+            if (touch.phase == TouchPhase.Began)
+            {
+                if (!touchToDropletIndex.ContainsKey(touch.fingerId))
+                {
+                    touchToDropletIndex[touch.fingerId] = nextAvailableDropletIndex;
+                    nextAvailableDropletIndex = (nextAvailableDropletIndex + 1) % droplets.Length;
+                }
+                EmitWave(touch.position, touch.fingerId);
+                touchTimers[touch.fingerId] = emissionInterval;
+            }
+            else if (touch.phase == TouchPhase.Moved || touch.phase == TouchPhase.Stationary)
+            {
+                if (touchTimers[touch.fingerId] <= 0)
+                {
+                    EmitWave(touch.position, touch.fingerId);
+                    touchTimers[touch.fingerId] = emissionInterval;
+                }
+            }
+            else if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+            {
+                touchToDropletIndex.Remove(touch.fingerId);
+                touchTimers.Remove(touch.fingerId);
+            }
         }
+        // Log de cuantos toques se están realizando
+        Debug.Log("Touch count: " + Input.touchCount);
+
+
 #if UNITY_EDITOR
+        mouseTimer -= Time.deltaTime;
         if (Input.GetMouseButton(0))
         {
-            droplets[0].Reset(Input.mousePosition);
-          //  Emit(Input.mousePosition);
+            if (mouseTimer <= 0)
+            {
+                EmitWave(Input.mousePosition, 0);
+                mouseTimer = emissionInterval;
+            }
         }
 #endif
+        
         foreach (var d in droplets) d.Update();
         UpdateShaderParameters();
+    }
+
+    private void EmitWave(Vector3 position, int fingerId)
+    {
+        if (touchToDropletIndex.ContainsKey(fingerId))
+        {
+            droplets[touchToDropletIndex[fingerId]].Reset(position);
+        }
+        else
+        {
+            int dropletIndex = nextAvailableDropletIndex;
+            nextAvailableDropletIndex = (nextAvailableDropletIndex + 1) % droplets.Length;
+            droplets[dropletIndex].Reset(position);
+        }
     }
 
     void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
         Graphics.Blit(source, destination, material);
-    }
-
-    public void Emit(Vector3 mousePos)
-    {
-        droplets[dropCount++ % droplets.Length].Reset(mousePos);
     }
 }

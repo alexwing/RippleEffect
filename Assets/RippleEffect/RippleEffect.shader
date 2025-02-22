@@ -12,6 +12,12 @@
         _Drop3("Drop 3", Vector) = (0.51, 0.5, 0, 0)
         _Drop4("Drop 4", Vector) = (0.52, 0.5, 0, 0)
         _Drop5("Drop 5", Vector) = (0.52, 0.5, 0, 0)
+        _Drop6("Drop 6", Vector) = (0.5, 0.5, 0, 0)
+        _Drop7("Drop 7", Vector) = (0.5, 0.5, 0, 0)
+        _Drop8("Drop 8", Vector) = (0.5, 0.5, 0, 0)
+        _Drop9("Drop 9", Vector) = (0.5, 0.5, 0, 0)
+        _Drop10("Drop 10", Vector) = (0.5, 0.5, 0, 0)
+        _WaveParams("Wave Parameters", Vector) = (1, 1, 0, 0)
     }
 
     CGINCLUDE
@@ -32,12 +38,22 @@
     float3 _Drop3;
     float3 _Drop4;
     float3 _Drop5;
+    float3 _Drop6;
+    float3 _Drop7;
+    float3 _Drop8;
+    float3 _Drop9;
+    float3 _Drop10;
+    float4 _WaveParams; // xy = width, intensity
 
     float wave(float2 position, float2 origin, float time)
     {
-        float d = length(position - origin);
-        float t = time - d * _Params1.z;
-        return (tex2D(_GradTex, float2(t, 0)).a - 0.5f) * 2;
+        // Ajustar la posición según el aspect ratio
+        float2 adjustedPos = position * float2(_Params2.x, 1);
+        float2 adjustedOrigin = origin * float2(_Params2.x, 1);
+        
+        float d = length(adjustedPos - adjustedOrigin) * _Params1.w; // multiplicar por zoom
+        float t = time - (d / _WaveParams.x) * _Params1.z; // ajustar ancho
+        return (tex2D(_GradTex, float2(t, 0)).a - 0.5f) * 2 * _WaveParams.y; // multiplicar por intensidad
     }
 
     float allwave(float2 position)
@@ -47,7 +63,12 @@
             wave(position, _Drop2.xy, _Drop2.z) +
             wave(position, _Drop3.xy, _Drop3.z) +
             wave(position, _Drop4.xy, _Drop4.z) +
-            wave(position, _Drop5.xy, _Drop5.z);
+            wave(position, _Drop5.xy, _Drop5.z) +
+            wave(position, _Drop6.xy, _Drop6.z) +
+            wave(position, _Drop7.xy, _Drop7.z) +
+            wave(position, _Drop8.xy, _Drop8.z) +
+            wave(position, _Drop9.xy, _Drop9.z) +
+            wave(position, _Drop10.xy, _Drop10.z);
     }
 
     half4 frag(v2f_img i) : SV_Target
@@ -55,7 +76,7 @@
         const float2 dx = float2(0.01f, 0);
         const float2 dy = float2(0, 0.01f);
 
-        float2 p = i.uv * _Params1.xy;
+        float2 p = i.uv;  // Ya no multiplicamos por _Params1.xy aquí
 
         float w = allwave(p);
         float2 dw = float2(allwave(p + dx) - w, allwave(p + dy) - w);
